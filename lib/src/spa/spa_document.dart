@@ -87,6 +87,17 @@ final class SpaImageRecord {
 
   final Object data;
 
+  /// English display name recovered from either a positional or named record.
+  String? get displayName {
+    final metadata = switch (data) {
+      final List<Object?> values when values.isNotEmpty => values.first,
+      final Map<String, Object?> fields => fields,
+      _ => null,
+    };
+    if (metadata is! Map) return null;
+    return metadata.values.whereType<String>().firstOrNull;
+  }
+
   Object toJson() => data;
 }
 

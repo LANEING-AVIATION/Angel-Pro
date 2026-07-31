@@ -28,4 +28,45 @@ void main() {
     expect(html, contains('Offline Three.js r'));
     expect(html, contains('WebGL ready'));
   });
+
+  test('offline viewport exposes the serialized command endpoint', () {
+    final html = File(viewportPath).readAsStringSync();
+
+    expect(html, contains('window.__angelBridge'));
+    expect(html, contains('async dispatch(command)'));
+    expect(html, contains("'angelRuntimeReady'"));
+    expect(html, contains('flutterInAppWebViewPlatformReady'));
+    expect(html, contains("window.__angelBridge.register('ping'"));
+    for (final command in <String>[
+      'synchronizeOrthographicViewport',
+      'captureFrame',
+      'serializeScene',
+      'projectWorldPoints',
+      'unprojectScreenPoint',
+      'loadScene',
+    ]) {
+      expect(
+        html,
+        contains("'$command'"),
+        reason: 'Missing runtime endpoint for Dart command $command',
+      );
+    }
+  });
+
+  test(
+    'offline viewport renders and deterministically frames SPA geometry',
+    () {
+      final html = File(viewportPath).readAsStringSync();
+
+      expect(html, contains("window.__angelBridge.register('loadScene'"));
+      expect(html, contains('new THREE.HemisphereLight'));
+      expect(html, contains('new THREE.DirectionalLight'));
+      expect(html, contains('new THREE.Line('));
+      expect(html, contains('new THREE.Mesh('));
+      expect(html, contains('new THREE.Box3().setFromObject(modelRoot)'));
+      expect(html, contains('bounds.getBoundingSphere'));
+      expect(html, contains("emptyScene.dataset.visible = 'true'"));
+      expect(html, contains("window.addEventListener('resize'"));
+    },
+  );
 }

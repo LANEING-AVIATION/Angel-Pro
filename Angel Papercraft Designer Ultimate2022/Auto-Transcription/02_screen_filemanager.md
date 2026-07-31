@@ -44,6 +44,8 @@ RecentFiles (Form)
         │
         ├── 垂直布局3 / BackgroundLayer  [VerticalArrangement — z=97, full width/height]
         │   └── 你找不到我的 / BlurSample  [Image — fill screen — BlurRate=0.3 — real-time blurred snapshot]
+        │       # BlurRate is a normalized rate [0.0 = no blur, 1.0 = maximum blur], NOT a pixel radius.
+        │       # See 19_appinventor_property_encoding_quirks.md §6 for the Flutter sigma conversion.
         │
         └── 文件视图内容 / FileViewContainer  [AbsoluteArrangement — fill 100%, z=95]
             ├── 文件视图 / FileList        [VerticalScrollArrangement — z=9 — dynamically populated]

@@ -46,14 +46,10 @@ void main() {
       );
     });
 
-    test('accepts case-insensitive SPA suffixes', () {
-      for (final path in <String>[
-        'model.SPA',
-        'model.spa',
-        r'C:\models\aircraft.SpA',
-      ]) {
-        expect(SpaPathValidator.isSpaPath(path), isTrue, reason: path);
-      }
+    test('accepts only the strict legacy .SPA suffix', () {
+      expect(SpaPathValidator.isSpaPath('model.SPA'), isTrue);
+      expect(SpaPathValidator.isSpaPath('model.spa'), isFalse);
+      expect(SpaPathValidator.isSpaPath(r'C:\models\aircraft.SpA'), isFalse);
     });
 
     test('rejects embedded, incomplete, and trailing suffix lookalikes', () {

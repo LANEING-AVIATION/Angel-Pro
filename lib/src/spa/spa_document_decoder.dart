@@ -40,8 +40,7 @@ abstract final class SpaPathValidator {
   static bool isSpaPath(String path) {
     final separatorIndex = _lastSeparatorIndex(path);
     final fileName = path.substring(separatorIndex + 1);
-    return fileName.length > '.spa'.length &&
-        fileName.toLowerCase().endsWith('.spa');
+    return fileName.length > '.SPA'.length && fileName.endsWith('.SPA');
   }
 
   static void requireSpaPath(String path) {
@@ -168,7 +167,7 @@ final class SpaDocumentDecoder {
       return null;
     }
     return Map<String, Object?>.unmodifiable(
-      value.map((key, value) => MapEntry(key as String, value as Object?)),
+      value.map((key, value) => MapEntry(key as String, value)),
     );
   }
 

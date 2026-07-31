@@ -3,7 +3,16 @@
 **Screen**: Workspace  
 This document describes every visible UI component in the Workspace screen.
 
-> **Icon system note**: Most icon-buttons in this screen use a custom icon font (`ICONFONTforANGELIII.otf`) where Latin letters map to icon glyphs. See [11_icon_system_migration.md](./11_icon_system_migration.md) for the full inventory of letter codes and the SVG migration plan.
+> **Migration authority and icon rule:** The recursive `Workspace.scm` tree is
+> authoritative for static layout and `Workspace.bky` is authoritative for
+> runtime-created controls, labels, UIKIT recipes, and visibility changes.
+> Legacy glyph codes and bitmap-icon names are source evidence only. Every
+> production icon leaf must use a semantic Flutter `CupertinoIcons` constant;
+> do not register bitmap command icons, `ICONFONTforANGELIII.otf`, a
+> replacement icon font, raw `IconData(...)`, Material icons, or custom-painted
+> substitutes. Preserve the source container around the substituted leaf.
+> See `docs/appinventor_layout_fidelity.md` and
+> [21_cupertino_ui_migration.md](./21_cupertino_ui_migration.md).
 
 ---
 
@@ -36,9 +45,9 @@ Height: 50 px. Semi-transparent white background (`#8BFFFFFF`).
 | Loading button          | `按钮_Loading`      | LoadingButton         | "Loading" text — blue bg, white bold — shown during load |
 | Spacer                  | `水平布局25`        | TopSpacer             | w=40, pushes toolbar to the right                    |
 | Toolbar scroll area     | `顶端功能区`        | ToolbarScroll         | HorizontalScrollArrangement — contains all tools     |
-| → Undo button           | `按钮_撤销`         | UndoButton            | 35×35 — UNDO.PNG                                    |
+| → Undo button           | `按钮_撤销`         | UndoButton            | 35×35; SCM bitmap establishes command meaning; Flutter leaf is `CupertinoIcons.arrow_uturn_left` |
 | → Spacer                | `水平布局22`        | SmallSpacer1          | w=5                                                  |
-| → Save button (hidden)  | `按钮_保存`         | SaveButton            | 50×50 — STORAGEW.PNG — hidden; shown when unsaved changes exist |
+| → Save button (hidden)  | `按钮_保存`         | SaveButton            | 50×50; SCM bitmap establishes command meaning; Flutter leaf is `CupertinoIcons.archivebox`; initially hidden |
 | → Spacer                | `水平布局23`        | SmallSpacer2          | w=5                                                  |
 | → Gesture area          | `手势`              | GestureZone           | HorizontalArrangement — w=100 — holds gesture mode buttons |
 | → Ortho view mode       | `正交视角模式`      | OrthoModeZone         | HorizontalArrangement — w=150 — orthographic view selector |
@@ -75,6 +84,11 @@ The work area is split horizontally into a **viewport column** (left/center) and
 ### Side Panel (`功能区` / SidePanel)
 
 The side panel is a `HorizontalArrangement` containing several tabs, each a `VerticalScrollArrangement`. Only one tab is visible at a time.
+
+The six SCM siblings remain in this exact order: Import, Options, Items,
+Material, Transform, Wireframe. Wireframe is the design-time visible branch.
+`Workspace.bky` initializes the three-choice top manager (Wireframe, Transform,
+Items) that changes which retained sibling is visible.
 
 ---
 
@@ -127,6 +141,10 @@ The side panel is a `HorizontalArrangement` containing several tabs, each a `Ver
 ---
 
 ### Tab 5: Transform (`变换` / TransformTab) — HIDDEN initially
+
+`Workspace.bky` gives its four manager/body pairs the runtime labels
+`Dragging`, `Transformation`, `Texture & Group`, and `Flip & Align`, in the
+same order as the SCM nodes below.
 
 ```
 变换 / TransformTab  [VerticalScrollArrangement]
@@ -184,14 +202,19 @@ The side panel is a `HorizontalArrangement` containing several tabs, each a `Ver
 
 ---
 
-### Tab 6: Wireframe (`线框` / WireframeTab) — always visible
+### Tab 6: Wireframe (`线框` / WireframeTab) — VISIBLE initially
+
+`Workspace.bky` gives its four manager/body pairs the runtime labels
+`Strokes`, `Surface`, `Connection`, and `Reference`. These labels supersede
+descriptive screenshot aliases such as “Drawing,” “Surface-based,” “Coupling,”
+and “Reference Map.”
 
 ```
 线框 / WireframeTab  [VerticalScrollArrangement]
 │
 ├── 绘制控制条 / DrawControlBar         [HorizontalArrangement — section header]
 ├── 绘制功能组 / DrawFuncGroup          [VerticalArrangement]
-│   ├── 按钮_绘制状态 / DrawModeBtn     [Button — "CMD_Line" — toggles draw mode on/off]
+│   ├── 按钮_绘制状态 / DrawModeBtn     [Button — SCM literal "CMD_Line"; English presentation alias "Drawing State"; toggles draw mode]
 │   └── 绘制功能组可锁定 / DrawPanel    [VerticalArrangement — HIDDEN until draw mode active]
 │       ├── 水平布局1 / DrawTypeRow     [HorizontalArrangement]
 │       │   ├── 按钮_Close / ClosePathBtn  [Button — "Close" — close path]
@@ -240,6 +263,22 @@ The side panel is a `HorizontalArrangement` containing several tabs, each a `Ver
     └── 水平布局17 / RefTextureRow      [HorizontalArrangement]
         └── 选择参考色盒 / RefTextureSpinner [Spinner — select which texture set to use as 3-view reference]
 ```
+
+**Flutter Spinner mapping correction (2026-07-30):** `RefTextureSpinner` and
+the other Workspace Spinner leaves retain their source parent, sibling order,
+size relationship, runtime element order, and selection behavior. Their leaf
+widget is the reusable `AngelCupertinoDropdown<T>`, implemented with
+`CupertinoMenuAnchor` and ordered `CupertinoMenuItem` children. This is an
+anchored dropdown mapping; do not substitute a `CupertinoPicker`, centered
+modal, or `CupertinoContextMenuAction` list.
+
+**UIKIT rendering correction:** Classic buttons use the recovered translucent
+`#7E7E7E21` background, radius 5, elevation 1, white content, and 100/400 ms
+press feedback. Checkbox-bound controls use blue/white only while active and
+white/black while inactive. Function managers use a white 40×40, radius-9,
+elevation-6 moving pad with no inactive tiles. Do not add metallic/glossy
+gradients, pill shading, generic borders, or an invented blue-action
+hierarchy.
 
 ---
 

@@ -47,16 +47,23 @@ The recommended structure below keeps all web assets together to avoid this prob
 
 ## Proposed Flutter Asset Directory Structure
 
+> **Icon-policy correction (2026-07-30):** The legacy `fonts/` proposal in the
+> historical tree below is superseded. Do not copy or register
+> `ICONFONTforANGELIII.otf`, bitmap command icons, SVG replacements, or any
+> custom icon system in Flutter assets. Inspect those legacy files only to
+> recover command meaning, then render the leaf with a named
+> `CupertinoIcons` constant. Non-icon backgrounds, reference images, textures,
+> and document content remain valid assets.
+
 ```
 assets/
 │
 ├── fonts/
 │   └── ICONFONTforANGELIII.otf
 │       # Legacy icon font mapping Latin letters to vector icons.
-│       # Retained for reference during SVG migration.
-│       # Do NOT register this font globally in pubspec.yaml — it must only
-│       # be applied to specific icon label widgets via TextStyle.fontFamily.
-│       # See 11_icon_system_migration.md for the full SVG replacement plan.
+│       # Historical source evidence only; do not copy into Flutter assets,
+│       # register in pubspec, or render through TextStyle.fontFamily.
+│       # Resolve each command and use a named CupertinoIcons constant.
 │
 ├── images/
 │   │
@@ -66,6 +73,9 @@ assets/
 │   │   │   # background for all screens (Screen1, RecentFiles, Workspace,
 │   │   │   # UnfoldULT, UnfoldIMG). Displayed full-screen behind all content.
 │   │   │   # In AppInventor: BackgroundImage + BackgroundImageBlurRate property.
+│   │   │   # BackgroundImageBlurRate is a normalized rate [0.0 = no blur, 1.0 = maximum blur],
+│   │   │   # NOT a pixel radius. See 19_appinventor_property_encoding_quirks.md §6 for the
+│   │   │   # Flutter ImageFilter.blur() sigma conversion.
 │   │   │   # In Flutter: use a full-screen Stack with Image.asset() underneath,
 │   │   │   # apply BackdropFilter + ImageFilter.blur() on top if needed.
 │   │   │
@@ -326,5 +336,5 @@ This table covers every file currently in `A3PDF_EN/assets/` (the folder the use
 | `SceneUtils.js` | Scene merge utilities | A3LIV_EN extru.html only | `assets/web/SceneUtils.js` | Only needed for livery extrusion viewer |
 | `stats.min.js` | FPS performance overlay | A3LIV_EN extru.html only | `assets/web/stats.min.js` | Debug tool — consider omitting in production |
 | `dat.gui.min.js` | Debug GUI tweakpane | A3LIV_EN extru.html only | `assets/web/dat.gui.min.js` | Debug tool — consider omitting in production |
-| `ICONFONTforANGELIII.otf` | Custom icon font | A3NG_EN/Workspace.bky + A3LIV_EN/Texture.bky | `assets/fonts/ICONFONTforANGELIII.otf` | Legacy; to be replaced by SVG icons. See `11_icon_system_migration.md` |
+| `ICONFONTforANGELIII.otf` | Custom icon font | A3NG_EN/Workspace.bky + A3LIV_EN/Texture.bky | **Do not migrate/register** | Source evidence only; replace each semantic leaf with a named `CupertinoIcons` constant. See `11_icon_system_migration.md` |
 | `external_comps/com.KIO4_Pdf/` | KIO4 PDF generator extension | A3PDF_EN Screens (KIO4_Pdf1 component) | N/A | Replace with a Dart PDF library such as `pdf` + `printing` packages |

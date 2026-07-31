@@ -21,11 +21,11 @@ void main() {
       },
     );
 
-    final result = await resolver.resolve(externalPath: 'C:/models/test.SpA');
+    final result = await resolver.resolve(externalPath: 'C:/models/test.SPA');
 
     expect(result.origin, SpaDocumentOrigin.externalFile);
-    expect(result.sourcePath, 'C:/models/test.SpA');
-    expect(reads, <String>['external:C:/models/test.SpA']);
+    expect(result.sourcePath, 'C:/models/test.SPA');
+    expect(reads, <String>['external:C:/models/test.SPA']);
   });
 
   test(

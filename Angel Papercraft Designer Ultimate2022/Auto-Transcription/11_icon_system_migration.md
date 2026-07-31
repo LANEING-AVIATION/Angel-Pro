@@ -1,257 +1,155 @@
-# Icon System: Legacy Font Icons → SVG Migration
+# Icon System: Legacy Evidence to CupertinoIcons
 
-This document records the custom icon font system used in the original AppInventor project and specifies the migration strategy for the Flutter rebuild.
+This document records how to interpret the original icon system and the only
+permitted Flutter migration strategy.
 
----
+## Legacy source system
 
-## Background: Why a Custom Icon Font?
+The App Inventor projects use `ICONFONTforANGELIII.otf`. Glyphs are mapped to
+Latin letters or private-use characters and assigned at runtime by UIKIT
+procedures. Some SCM buttons also use bitmap command images such as
+`UNDO.PNG`, `STORAGEW.PNG`, `OUTW.PNG`, `DOCK.PNG`, and `TRASH.PNG`.
 
-MIT App Inventor does not support SVG icons or any standard icon library (like Material Icons). To display vector icons, the original developer created a **custom icon font** using FontCreator:
+These artifacts are authoritative evidence for:
 
-**Font file**: `ICONFONTforANGELIII.otf`  
-**Location in original project**: `assets/ICONFONTforANGELIII.otf`  
+- whether the source node is an icon-bearing leaf;
+- the command or mode associated with the leaf;
+- whether the surrounding button text is retained;
+- the source node's size, order, state, and UIKIT procedure.
 
-Each icon was drawn as a glyph and **mapped to a Latin alphabet letter**. For example, the letter `"D"` might display as a "document" icon, `"V"` as a "view" icon, etc. The font is applied to a Label or Button component at runtime via:
+They are not permitted Flutter rendering assets.
 
-```
-call KevinkunEnhance1.setFontTypeface(component, asset("//ICONFONTforANGELIII.otf"))
-```
+## Why literal font/bitmap migration is rejected
 
----
+The legacy font has inconsistent glyph bearings, requires per-glyph space
+hacks, prevents reliable English icon-and-text labels, and has undocumented
+private-use mappings. Bitmap command icons do not scale consistently and would
+mix visual systems. Custom painters and replacement SVG packs would introduce
+another icon system not requested by the product rule.
 
-## Known Problems with the Icon Font Approach
+## Required Flutter rule
 
-The developer encountered several limitations:
+Every production icon leaf must use a named constant from Flutter's
+`CupertinoIcons` API.
 
-1. **Letter spacing mismatch**: Glyph widths in `ICONFONTforANGELIII.otf` were designed for alphabet proportions, not square icons. Each icon had its own unexpected horizontal padding. The workaround was to prepend/append different quantities of space characters (`"    "` / `"   "`) to each icon's text string to make it visually centred. This is fragile and not portable.
+Forbidden:
 
-2. **Latin letters unusable for text**: Since every Latin letter mapped to an icon glyph, it was **impossible to display English text** on any Label or Button that used the icon font. This forced the UI design into two categories:
-   - Components using only the icon font (icon-only, no readable text).
-   - Components using the system font (text-only, no icons).
+- registering or rendering `ICONFONTforANGELIII.otf`;
+- registering any replacement/custom icon font;
+- raw `IconData(...)` construction;
+- bitmap assets used as command icons;
+- SVG command-icon assets;
+- Material `Icons`;
+- `CustomPainter` or hand-drawn icon substitutes.
 
-3. **Icon + text combos required Chinese**: The only way to show an icon alongside a description was to use the icon font for the letter, followed by **pure Chinese characters** (which rendered normally since they have no glyph mapping in the font). Example: a button with text `"D修改"` would render as `[document-icon] 修改`.
+Non-icon source imagery remains allowed: workspace backgrounds, reference
+images, textures/liveries, photographs, and content thumbnails.
 
-4. **Partial removal in the English version**: The A3NG_EN project (the one being transcribed) is the English-language version. To produce an English UI, many of the icon+Chinese-text buttons had to be **replaced** with either:
-   - Icon-only buttons (letter code still used, no text label).
-   - Plain English text buttons (no icon font).
-   This is why some buttons in the `.scm` files have empty text `""` and some have plain English labels like `"Select"`, `"Loft"`, `"Drag"`.
+## Leaf-only substitution discipline
 
----
+Icon migration changes only the leaf:
 
-## How the Icon Font Was Used in Code
+1. Find the source component in `.scm`.
+2. Find every `.bky` call affecting it.
+3. Determine the command from the component name, click handler, state binding,
+   and UIKIT call. Never infer meaning from the letter code alone.
+4. Select the closest semantic `CupertinoIcons` constant.
+5. Preserve the source parent, sibling order, width/height, margin,
+   background, shadow, radius, selected state, and animation.
+6. Add an English semantics label based on the recovered command.
 
-The `UIKIT建立经典按钮` / `buildClassicButton(button, colorCode)` procedure accepts a **single letter as the icon code**:
+A different-looking Cupertino symbol is acceptable when the legacy glyph is
+forbidden; a different container or interaction is not.
 
-```
-if colorCode is not empty:
-    button.Text = button.Text          // keep existing text (plain English label)
-                                       // font NOT applied — button stays system font
-else:
-    button.Text = HtmlTextDecode(...)  // decode an HTML entity (Unicode char → icon)
-    apply ICONFONTforANGELIII.otf to button
-```
+## Recovered UIKIT icon behavior
 
-The `UIKIT建立功能组` / `buildFunctionGroup(layout, toggle, iconCode, label, width)` procedure creates a panel header row with:
-- An icon label (font applied, icon code set as text).
-- A section title string (plain text, next to the icon).
-- A toggle switch.
+### Classic button
 
-The `UIKIT建立函数管理器` / `buildFuncManager(layout, itemList, useFont)` procedure creates tab-bar buttons where each item's text is decoded from an HTML entity and the icon font is applied.
+`UIKIT建立经典按钮` keeps an existing English text label. Only an empty
+icon-bearing source leaf receives a Cupertino icon. The surrounding source
+recipe remains `#7E7E7E21`, radius 5, elevation 1, white content, margin 5,
+and 100/400 ms press feedback.
 
----
+### Checkbox-bound toggle
 
-## Inventory of Icon Letter Codes Used
+`UIKIT建立复选框` may combine an icon and state text. The icon becomes a
+Cupertino icon beside ordinary English text. Active state is blue/white;
+inactive state is white/black.
 
-The following letters are passed as icon codes across the project. The actual glyph each letter maps to is defined in `ICONFONTforANGELIII.otf`. The **suggested SVG icon** is a best-guess replacement based on the button's context.
+### Function group
 
-### Workspace Screen — `界面初始化()` calls
+`UIKIT建立功能组` creates an icon label beside the runtime section name and
+switch. Use a 20-point Cupertino icon without changing the 250 x 50 header or
+moving its controlled body.
 
-| Letter Code | Context / Assigned To                  | Suggested SVG Icon                |
-|-------------|----------------------------------------|-----------------------------------|
-| `"D"`       | (×2) — first: unknown btn; second: Texture & Group panel header | document / texture |
-| `"V"`       | Unknown button                         | view / eye                        |
-| `"F"`       | (×2) — button + Reference panel header | folder / flag / reference         |
-| `"T"`       | Unknown button                         | type / text / transform           |
-| `"bb"`      | Unknown button (two-char = special?)   | double-arrow / back-back          |
-| `"W"`       | (×2) — button + Strokes panel header   | wireframe / pencil / wave         |
-| `"O"`       | Button + Connection panel header       | orbit / connect / link            |
-| `"P"`       | Button                                 | pin / point / place               |
-| `"L"`       | Button                                 | loft / line / layer               |
-| `"Y"`       | (×2) — buttons                         | Y-axis / symmetric                |
-| `"h"`       | (×2) — button + Flip & Align header    | horizontal / flip                 |
-| `"i"`       | (×3) — buttons                         | info / insert                     |
-| `"G"`       | Button                                 | group / grid                      |
-| `"E"`       | (×3) — checkboxes                      | edge / enter / expand             |
-| `"M"`       | Checkbox + Surface panel header        | mesh / material / mirror          |
-| `"S"`       | Checkbox                               | select / surface / snap           |
-| `"X"`       | Checkbox + Dragging panel header       | x-axis / close / transform        |
-| `"N"`       | Checkbox                               | normal / new                      |
-| `"I"`       | `UIKIT建立函数管理器` + Transformation panel header | info / inspect |
-| `"a"`       | `UIKIT建立函数管理器` item              | add / attach                      |
+### Function manager
 
-### Workspace Screen — `UIKIT建立函数管理器` top menu
+`UIKIT建立函数管理器` uses icon/text items over a moving selection pad. The
+replacement icon stays dark. Inactive items have no tile; the selected item has
+the source white 40 x 40, radius-9, elevation-6 pad moving over 600 ms.
 
-| Letter Code | Context                                | Suggested SVG Icon                |
-|-------------|----------------------------------------|-----------------------------------|
-| `"S"`       | First tab                              | files / list                      |
-| `"I"`       | Second tab                             | info / settings                   |
-| `"X"`       | Third tab                              | close / clear                     |
+## Workspace semantic mapping
 
-### RecentFiles Screen — toolbar buttons
+This table is based on component behavior recovered from `Workspace.scm` and
+`Workspace.bky`, not on isolated glyph-letter guesses.
 
-| Letter Code | Context / Button Position              | Suggested SVG Icon                |
-|-------------|----------------------------------------|-----------------------------------|
-| `"B"`       | First toolbar button                   | back / browse / bookmark          |
-| `"L"`       | (×2) Second and third buttons          | list / location                   |
-| `"Y"`       | Fourth button                          | confirm / yes                     |
-| `"K"`       | Fifth button                           | key / link                        |
-| `"J"`       | Sixth button                           | jump / join                       |
-| `"V"`       | Seventh button                         | view / verify                     |
-| `""`        | Eighth button — empty code means HTML-entity icon decoded at runtime | (see note below) |
+| Source meaning | Cupertino icon |
+| --- | --- |
+| Undo | `CupertinoIcons.arrow_uturn_left` |
+| Save | `CupertinoIcons.archivebox` |
+| Rotate view | `CupertinoIcons.rotate_right` |
+| Pan view | `CupertinoIcons.move` |
+| Transform object | `CupertinoIcons.perspective` |
+| Copy | `CupertinoIcons.doc_on_doc` |
+| Delete | `CupertinoIcons.trash` |
+| Accelerate/advance | `CupertinoIcons.forward_end_alt` |
+| Export/share | `CupertinoIcons.share` |
+| Dock/grid | `CupertinoIcons.square_grid_3x2` |
+| Wireframe/strokes | `CupertinoIcons.scribble` |
+| Transform manager | `CupertinoIcons.move` |
+| Items/layers | `CupertinoIcons.square_stack_3d_up` |
+| Surface | `CupertinoIcons.square_grid_3x2` |
+| Connection | `CupertinoIcons.link` |
+| Reference image | `CupertinoIcons.photo` |
+| Transformation data | `CupertinoIcons.perspective` |
+| Flip and align | `CupertinoIcons.arrow_left_right` |
+| Texture and group | `CupertinoIcons.layers` |
 
-> **Note on empty string `""`**: When the icon code is an empty string, the button text is set from `HTTP客户端1.HtmlTextDecode(entity)` at runtime — meaning the glyph character is stored as an HTML entity (e.g., `&#xE001;`) somewhere in the block code, not as a plain letter. These are **private-use Unicode codepoints** mapped in the font. The exact glyph is unknown without running the app, but they are the icons where the developer had no available Latin letter that fit the meaning.
+X, Y, and Z are source text identifiers, not icons.
+Source buttons with retained English text such as `Circle` and `Line` likewise
+remain text buttons even when their initialization call carries a legacy
+glyph-code argument.
 
----
+## Legacy letter-code inventory
 
-## Spacing Hack
+Workspace blocks contain codes including `D`, `V`, `F`, `T`, `bb`, `W`, `O`,
+`P`, `L`, `Y`, `h`, `i`, `G`, `E`, `M`, `S`, `X`, `N`, `I`, and `a`.
+The same code can appear in different contexts and does not establish one
+global meaning. Preserve this inventory for source tracing only.
 
-Because icon glyphs had mismatched advance widths, text values were padded with spaces. Examples seen in the code:
+RecentFiles and other screens must be audited through their own component
+names and event handlers before selecting Cupertino constants. Do not copy a
+Workspace mapping solely because the raw letter matches.
 
-```
-?.Text = join("    ", HTTP客户端1.HtmlTextDecode(), "   ")
-//              ^^^^                                  ^^^
-//         4 leading spaces                      3 trailing spaces
-```
+## Spacing and sizing
 
-This was done per-icon to compensate for different left/right bearing values in the font. **This technique must not be replicated in Flutter.**
+Do not reproduce font-bearing space hacks. Center the Cupertino `Icon` within
+the exact decoded source control. Use the source UIKIT font size as the initial
+icon size (commonly 20) and adjust only through a documented platform adapter,
+not per-glyph arbitrary spaces.
 
----
+## Mechanical acceptance
 
-## Migration Strategy: SVG Icons in Flutter
+For each migrated screen, verify:
 
-For the Flutter rebuild, replace all icon font usage with **SVG icons**.
+- all icon-bearing source nodes have an English semantics label;
+- every production icon value originates from `CupertinoIcons`;
+- no command bitmap is registered in `pubspec.yaml`;
+- no custom font family is registered;
+- no raw `IconData(...)`, Material icon, SVG command asset, or custom icon
+  painter exists;
+- background/reference/content imagery is not incorrectly rejected as an icon;
+- surrounding UIKIT containers and selection behavior still match SCM/BKY.
 
-### Recommended Approach
-
-Use the [`flutter_svg`](https://pub.dev/packages/flutter_svg) package:
-
-```yaml
-dependencies:
-  flutter_svg: ^2.x.x
-```
-
-Render an icon:
-```dart
-SvgPicture.asset(
-  'assets/icons/undo.svg',
-  width: 24,
-  height: 24,
-  colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
-)
-```
-
-### Icon + Text Buttons
-
-The original icon+text pattern (icon letter followed by Chinese text) should be reimplemented as a `Row` containing an `SvgPicture` and a `Text`:
-
-```dart
-Row(
-  mainAxisSize: MainAxisSize.min,
-  children: [
-    SvgPicture.asset('assets/icons/folder.svg', width: 20, height: 20),
-    const SizedBox(width: 6),
-    const Text('Open'),
-  ],
-)
-```
-
-### Standalone Icon Buttons
-
-For icon-only buttons (the most common case in toolbar rows), use `IconButton` with an `SvgPicture` as the icon:
-
-```dart
-IconButton(
-  icon: SvgPicture.asset('assets/icons/undo.svg', width: 24),
-  onPressed: onUndo,
-  tooltip: 'Undo',
-)
-```
-
-### No More Spacing Hacks
-
-SVG icons have precise bounding boxes. Set `width` and `height` explicitly — no padding or spacing tricks needed.
-
-### No Font Restriction on Text
-
-Since SVG icons are separate widgets from text, English labels can be placed freely next to any icon without any conflict.
-
----
-
-## Asset Organisation
-
-Create a dedicated icons directory:
-
-```
-assets/
-└── icons/
-    ├── undo.svg
-    ├── save.svg
-    ├── folder.svg
-    ├── new_file.svg
-    ├── delete.svg
-    ├── copy.svg
-    ├── cut.svg
-    ├── paste.svg
-    ├── share.svg
-    ├── dock.svg
-    ├── new_folder.svg
-    ├── wireframe.svg
-    ├── transform.svg
-    ├── texture.svg
-    ├── edge.svg
-    ├── loft.svg
-    ├── group.svg
-    ├── surface.svg
-    ├── reference.svg
-    ├── connection.svg
-    ├── flip.svg
-    ├── drag.svg
-    ├── select.svg
-    └── ...
-```
-
-A good free source for SVG icons matching this app's style (technical/engineering): [Material Symbols](https://fonts.google.com/icons) or [Tabler Icons](https://tabler.io/icons).
-
----
-
-## Summary Table: Letter Code → Recommended SVG
-
-This is a working reference. The developer (LANEING) should verify each mapping visually before finalising.
-
-| Screen        | Letter | Context label       | Recommended icon name (Material / Tabler) |
-|---------------|--------|---------------------|-------------------------------------------|
-| Workspace     | D      | Texture & Group     | `texture` / `color_lens`                  |
-| Workspace     | V      | —                   | `visibility`                              |
-| Workspace     | F      | Reference           | `flag` / `photo`                          |
-| Workspace     | T      | —                   | `text_fields` / `title`                   |
-| Workspace     | bb     | —                   | `keyboard_double_arrow_left`              |
-| Workspace     | W      | Strokes             | `gesture` / `draw`                        |
-| Workspace     | O      | Connection          | `hub` / `link`                            |
-| Workspace     | P      | —                   | `place` / `push_pin`                      |
-| Workspace     | L      | —                   | `layers` / `line_axis`                    |
-| Workspace     | Y      | —                   | `swap_vert` / `sync_alt`                  |
-| Workspace     | h      | Flip & Align        | `flip` / `align_horizontal_center`        |
-| Workspace     | i      | —                   | `info_outline`                            |
-| Workspace     | G      | —                   | `group_work` / `grid_view`                |
-| Workspace     | E      | Edge                | `timeline` / `polyline`                   |
-| Workspace     | M      | Surface             | `grid_3x3` / `blur_on`                    |
-| Workspace     | S      | Select              | `select_all` / `highlight_alt`            |
-| Workspace     | X      | Dragging            | `open_with` / `drag_indicator`            |
-| Workspace     | N      | —                   | `add` / `fiber_new`                       |
-| Workspace     | I      | Transformation      | `transform` / `tune`                      |
-| RecentFiles   | B      | —                   | `folder_open` / `source`                  |
-| RecentFiles   | L      | —                   | `list` / `format_list_bulleted`           |
-| RecentFiles   | Y      | —                   | `check` / `done`                          |
-| RecentFiles   | K      | —                   | `key` / `vpn_key`                         |
-| RecentFiles   | J      | —                   | `open_in_new` / `launch`                  |
-| RecentFiles   | V      | —                   | `preview` / `visibility`                  |
+The canonical layout/evidence discipline is
+`docs/appinventor_layout_fidelity.md`.
